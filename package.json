@@ -1,0 +1,20 @@
+{
+  "name": "hide-markup",
+  "main": "./lib/hide-markup",
+  "version": "0.1.0",
+  "description": "Hide Markdown markers in the Inkdrop editor",
+  "keywords": [
+    "inkdrop",
+    "plugin",
+    "markdown"
+  ],
+  "repository": "https://github.com/basyura/inkdrop-hide-markup",
+  "license": "MIT",
+  "files": [
+    "README.md",
+    "lib"
+  ],
+  "engines": {
+    "inkdrop": "^6.0.0"
+  }
+}
