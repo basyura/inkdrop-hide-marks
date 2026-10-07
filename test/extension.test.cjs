@@ -17,7 +17,7 @@ test('構文に成立した ** のみを検出する', () => {
 });
 
 test('通常カーソルが開始・終了記号を通過する', () => {
-  for (const [from, target, expected] of [[0,1,2],[2,1,2],[3,4,6],[5,4,3],[6,5,3]]) {
+  for (const [from, target, expected] of [[0,1,0],[2,1,0],[3,4,6],[5,4,3],[6,5,3]]) {
     const s = state('**a** x', from);
     assert.equal(s.update({selection:{anchor:target}}).state.selection.main.head, expected);
   }
@@ -25,8 +25,8 @@ test('通常カーソルが開始・終了記号を通過する', () => {
 
 test('行頭と上下移動で前の行に押し戻されない', () => {
   const s = state('**ab**\n**cd**', 9);
-  assert.equal(s.update({selection:{anchor:0}}).state.selection.main.head,2);
-  assert.equal(s.update({selection:{anchor:7}}).state.selection.main.head,9);
+  assert.equal(s.update({selection:{anchor:0}}).state.selection.main.head,0);
+  assert.equal(s.update({selection:{anchor:7}}).state.selection.main.head,7);
   assert.equal(state('**ab**',3,true).update({selection:{anchor:0}}).state.selection.main.head,2);
 });
 

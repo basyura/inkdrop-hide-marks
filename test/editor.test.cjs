@@ -27,7 +27,7 @@ test('通常の左右移動に記号ぶんの停止がない', () => {
   try {
     const positions = [];
     for(let i=0;i<6;i++) { cursorCharRight(view); positions.push(view.state.selection.main.head); }
-    assert.deepEqual(positions, [1,4,5,6,9,10]);
+    assert.deepEqual(positions, [1,2,5,6,9,10]);
     cursorCharLeft(view);
     assert.equal(view.state.selection.main.head, 9);
     cursorCharLeft(view);
@@ -320,12 +320,11 @@ test('行途中の強調と表示中の記号では Vim I の通常の移動先�
   } finally {view.destroy();}
 });
 
-test('Vim なしの左矢印は開始記号の前へ移動し、入力を外側に維持する', () => {
+test('Vim なしの左端は左矢印を押さずに開始記号の前へ入力できる', () => {
   for (const [doc,from] of [['**ab**',0],['x **ab** y',2],['  **ab**',2]]) {
     const view=editor(false,doc);
     try {
       view.dispatch({selection:{anchor:from+2}});
-      press(view,'ArrowLeft');
       assert.equal(view.state.selection.main.head,from);
       assert.equal(view.contentDOM.textContent.includes('**'),false);
       press(view,'X');
@@ -344,14 +343,99 @@ test('記号の手前からさらに左へ移動でき、表示中の記号は�
   const view=editor(false);
   try {
     view.dispatch({selection:{anchor:4}});
-    press(view,'ArrowLeft');
     assert.equal(view.state.selection.main.head,2);
     press(view,'ArrowLeft');
     assert.equal(view.state.selection.main.head,1);
     view.dispatch({selection:{anchor:4}});
     press(view,'Enter');
+    view.dispatch({selection:{anchor:4}});
     press(view,'ArrowLeft');
     assert.equal(view.state.selection.main.head,3);
     assert.equal(view.contentDOM.textContent,'x **ab** y');
   } finally {view.destroy();}
+});
+
+test('Vim 挿入モードの左矢印でも開始記号の前へ移動して外側に入力する', () => {
+  for (const [doc,from] of [['**ab**',0],['x **ab** y',2],['  **ab**',2]]) {
+    const view=editor(true,doc);
+    try {
+      Vim.handleKey(view.cm,'<Esc>');
+      view.dispatch({selection:{anchor:from+3}});
+      press(view,'i');
+      assert.equal(view.cm.state.vim.insertMode,true);
+      press(view,'ArrowLeft');
+      assert.equal(view.state.selection.main.head,from);
+      press(view,'X');
+      view.dispatch(view.state.replaceSelection('X'));
+      press(view,'Y');
+      view.dispatch(view.state.replaceSelection('Y'));
+      assert.equal(view.state.doc.toString(),doc.slice(0,from)+'XY'+doc.slice(from));
+      assert.equal(view.state.selection.main.head,from+2);
+      press(view,'ArrowRight');
+      assert.equal(view.state.selection.main.head,from+5);
+      assert.equal(view.cm.state.vim.insertMode,true);
+      assert.equal(view.contentDOM.textContent.includes('**'),false);
+    } finally {view.destroy();}
+  }
+});
+
+test('Vim 挿入モードでも表示中の記号上は通常どおり移動する', () => {
+  const view=editor(true);
+  try {
+    Vim.handleKey(view.cm,'<Esc>');
+    view.dispatch({selection:{anchor:4}});
+    press(view,'Enter');
+    press(view,'i');
+    press(view,'ArrowLeft');
+    assert.equal(view.state.selection.main.head,3);
+    press(view,'ArrowLeft');
+    assert.equal(view.state.selection.main.head,2);
+    assert.equal(view.contentDOM.textContent,'x **ab** y');
+    assert.equal(view.cm.state.vim.insertMode,true);
+  } finally {view.destroy();}
+});
+
+test('見た目の左端は通常・挿入モードとも一回の左矢印で前へ移動する', () => {
+  for (const withVim of [false,true]) {
+    const view=editor(withVim,'x **ああああ** y');
+    try {
+      if(withVim) {
+        Vim.handleKey(view.cm,'<Esc>');
+        view.dispatch({selection:{anchor:5}});
+        press(view,'i');
+      }
+      view.dispatch({selection:{anchor:4},userEvent:'select.pointer'});
+      assert.equal(view.state.selection.main.head,2);
+      press(view,'ArrowLeft');
+      assert.equal(view.state.selection.main.head,1);
+      press(view,'ArrowRight');
+      assert.equal(view.state.selection.main.head,2);
+      press(view,'ArrowRight');
+      assert.equal(view.state.selection.main.head,5);
+      press(view,'ArrowLeft');
+      assert.equal(view.state.selection.main.head,2);
+      press(view,'X');
+      view.dispatch(view.state.replaceSelection('X'));
+      assert.equal(view.state.doc.toString(),'x X**ああああ** y');
+    } finally {view.destroy();}
+  }
+});
+
+test('左端をクリックした直後も矢印なしで強調の外に入力できる', () => {
+  for (const withVim of [false,true]) {
+    const view=editor(withVim,'**ああああ**');
+    try {
+      if(withVim) {
+        Vim.handleKey(view.cm,'<Esc>');
+        view.dispatch({selection:{anchor:3}});
+        press(view,'i');
+      }
+      view.dispatch({selection:{anchor:2},userEvent:'select.pointer'});
+      assert.equal(view.state.selection.main.head,0);
+      press(view,'X');
+      view.dispatch(view.state.replaceSelection('X'));
+      assert.equal(view.state.doc.toString(),'X**ああああ**');
+      assert.equal(view.state.selection.main.head,1);
+    } finally {view.destroy();}
+  }
 });
