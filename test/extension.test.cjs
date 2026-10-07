@@ -17,7 +17,7 @@ test('構文に成立した ** のみを検出する', () => {
 });
 
 test('通常カーソルが開始・終了記号を通過する', () => {
-  for (const [from, target, expected] of [[0,1,0],[2,1,0],[3,4,6],[5,4,3],[6,5,3]]) {
+  for (const [from, target, expected] of [[0,1,0],[2,1,0],[3,4,5],[5,4,5],[6,5,5]]) {
     const s = state('**a** x', from);
     assert.equal(s.update({selection:{anchor:target}}).state.selection.main.head, expected);
   }

@@ -27,11 +27,11 @@ test('通常の左右移動に記号ぶんの停止がない', () => {
   try {
     const positions = [];
     for(let i=0;i<6;i++) { cursorCharRight(view); positions.push(view.state.selection.main.head); }
-    assert.deepEqual(positions, [1,2,5,6,9,10]);
+    assert.deepEqual(positions, [1,2,5,8,9,10]);
     cursorCharLeft(view);
     assert.equal(view.state.selection.main.head, 9);
     cursorCharLeft(view);
-    assert.equal(view.state.selection.main.head, 6);
+    assert.equal(view.state.selection.main.head, 8);
     cursorLineStart(view);
     assert.equal(view.state.selection.main.head, 0);
     cursorLineEnd(view);
@@ -57,7 +57,7 @@ test('実際の Vim で h l 0 $ と挿入モードが記号を飛び越える', 
     Vim.handleKey(cm,'i');
     assert.equal(cm.state.vim.insertMode,true);
     cursorCharLeft(view);
-    assert.equal(view.state.selection.main.head,6);
+    assert.equal(view.state.selection.main.head,8);
   } finally {view.destroy();}
 });
 
@@ -436,6 +436,82 @@ test('左端をクリックした直後も矢印なしで強調の外に入力�
       view.dispatch(view.state.replaceSelection('X'));
       assert.equal(view.state.doc.toString(),'X**ああああ**');
       assert.equal(view.state.selection.main.head,1);
+    } finally {view.destroy();}
+  }
+});
+
+test('右矢印一回で最後の強調文字を越えて終了記号の外側へ挿入する', () => {
+  for (const withVim of [false,true]) {
+    for (const [doc,head,end] of [['**あいうえお**',6,9],['前 **あいうえお** 後',8,11],['**👩‍💻**',2,9]]) {
+      const view=editor(withVim,doc);
+      try {
+        if(withVim) {
+          Vim.handleKey(view.cm,'<Esc>');
+          view.dispatch({selection:{anchor:head}});
+          press(view,'i');
+        }
+        view.dispatch({selection:{anchor:head}});
+        press(view,'ArrowRight');
+        assert.equal(view.state.selection.main.head,end);
+        press(view,'ArrowLeft');
+        assert.equal(view.state.selection.main.head,head === 2 ? 0 : head);
+        press(view,'ArrowRight');
+        view.dispatch(view.state.replaceSelection('X'));
+        view.dispatch(view.state.replaceSelection('Y'));
+        assert.equal(view.state.doc.toString(),doc.slice(0,end)+'XY'+doc.slice(end));
+        assert.equal(view.state.selection.main.head,end+2);
+        assert.equal(view.contentDOM.textContent.includes('**'),false);
+      } finally {view.destroy();}
+    }
+  }
+});
+
+test('右端クリックと右矢印は終了記号の外側で二重に停止しない', () => {
+  const view=editor(false,'前 **あいうえお** 後');
+  try {
+    view.dispatch({selection:{anchor:9},userEvent:'select.pointer'});
+    assert.equal(view.state.selection.main.head,11);
+    press(view,'ArrowRight');
+    assert.equal(view.state.selection.main.head,12);
+    press(view,'ArrowLeft');
+    assert.equal(view.state.selection.main.head,11);
+    view.dispatch(view.state.replaceSelection('X'));
+    assert.equal(view.state.doc.toString(),'前 **あいうえお**X 後');
+  } finally {view.destroy();}
+});
+
+test('Vim の最後の強調文字上の a は終了記号の外側から連続入力する', () => {
+  for (const [doc,head,end] of [['**あいうえお**',6,9],['前 **あいうえお** 後',8,11],['***ab***',4,7],['**👩‍💻**',2,9]]) {
+    const view=editor(true,doc);
+    try {
+      Vim.handleKey(view.cm,'<Esc>');
+      view.dispatch({selection:{anchor:head}});
+      press(view,'a');
+      assert.equal(view.cm.state.vim.insertMode,true);
+      assert.equal(view.state.selection.main.head,end);
+      view.dispatch(view.state.replaceSelection('X'));
+      view.dispatch(view.state.replaceSelection('Y'));
+      assert.equal(view.state.doc.toString(),doc.slice(0,end)+'XY'+doc.slice(end));
+      press(view,'Escape');
+      assert.equal(view.cm.state.vim.insertMode,false);
+      assert.equal(view.state.selection.main.head,end+1);
+    } finally {view.destroy();}
+  }
+});
+
+test('表示中の終了記号では右矢印と Vim a の通常の挿入位置を維持する', () => {
+  for (const withVim of [false,true]) {
+    const view=editor(withVim,'**あいうえお**');
+    try {
+      if(withVim) Vim.handleKey(view.cm,'<Esc>');
+      view.dispatch({selection:{anchor:6}});
+      press(view,'Enter');
+      if(withVim) press(view,'a');
+      else press(view,'ArrowRight');
+      assert.equal(view.state.selection.main.head,7);
+      view.dispatch(view.state.replaceSelection('X'));
+      assert.equal(view.state.doc.toString(),'**あいうえおX**');
+      assert.equal(view.contentDOM.textContent.includes('**'),true);
     } finally {view.destroy();}
   }
 });
