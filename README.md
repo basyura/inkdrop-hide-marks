@@ -1,54 +1,21 @@
 # hide-markup
 
-Markdown エディタ Inkdrop で、`**strong**` の強調記号 `**` を非表示にするためのプラグインです。
+This plugin hides Markdown syntax markers, such as the `**` delimiters in `**strong**`.
 
-保存する Markdown はそのまま維持し、エディタ上の表示だけを変更します。通常は強調の本文にカーソルが入っても記号は非表示のままです。コード内、エスケープされた記号、未成立の強調、`__strong__` は対象外です。
+The saved Markdown remains unchanged; only its appearance in the editor is modified. Press `Enter` inside a strong emphasis span to temporarily reveal its markers without inserting a newline. The markers are hidden again when the cursor moves outside the span, including its delimiters. Works with both the standard editor and Vim.
 
-強調本文内で `Enter` を押すと、改行せず、その強調の `**` を一時的に表示します。表示中は記号も編集でき、次の `Enter` は通常の処理に戻ります。カーソルを記号を含む強調範囲の外へ移動すると、記号を再び非表示にします。通常エディタと Vim の両方で使用できます。
+## Supported syntax
 
-通常のカーソル移動では非表示の記号を飛び越えます。Vim プラグインが直接指定するカーソル位置も補正し、通常モードでは非表示の記号にブロックカーソルが停止しないようにします。
+* [x] `**strong**`
+* [x] `[Inkdrop](https://www.inkdrop.app)` → [link-compact](https://my.inkdrop.app/plugins/link-compact)
+* [ ] `~~delete~~`
+* [ ] `inline code`
+* [ ] `> blockquote`
 
-記号が非表示のとき、Vim の通常モードで強調本文の左端から `i` を押すと、開始記号 `**` の手前で挿入モードに入ります。例えば `**ab**` の `a` 上で `i` を押して `X` を入力すると、保存する本文は `X**ab**` になります。記号を表示している間は、本文位置のまま挿入します。
-
-`I` で移動する行の最初の非空白位置が強調開始記号の場合も、記号の手前から挿入します。例えば `  **ab**` の行で `I` を押して `X` を入力すると `  X**ab**` になります。
-
-Vim がない場合と Vim の挿入モードでは、非表示の強調本文の左端を最初から開始記号の手前として扱います。`←` を押さずに入力しても、文字は強調の外側に追加されます。左端から `←` を押すと、一回で直前の文字側へ移動します（行頭では停止します）。
-
-右端も終了記号の直後として扱います。`**あいうえ|お**` から `→` を一回押すと `**あいうえお**|` に移動し、入力は強調の外側に追加されます。右端から `←` を一回押すと最後の本文文字の手前へ戻ります。Vim 通常モードで最後の本文文字上から `a` を押した場合も、終了記号の直後で挿入モードに入ります。記号表示中は通常の移動・挿入を維持します。
-
-## TODO
-
-* [ ] `**記号非表示**する` の先頭の `記号` で `<Enter>` したら左側の `**` が表示されない
-* [ ] `**記号非表示**する` のみがある行で `yy` でコピーした際に先頭の `**` がコピーされない
-* [ ] `<Left>` で強調文字列の左端に移動しても強調表示文字内
-
-## 対応環境
+## Requirements
 
 - Inkdrop 6
 
-## 開発時の導入
+## LICENSE
 
-このリポジトリのディレクトリで以下を実行します。
-
-```sh
-ipm link
-```
-
-Inkdrop を再起動し、設定のプラグイン一覧で `hide-markup` を有効にします。
-
-## ファイル構成
-
-- `package.json`: プラグインのメタデータ
-- `lib/hide-markup.js`: 有効化・無効化の入口
-- `lib/markers.js`: 強調記号の構文解析
-- `lib/extension.js`: 非表示の装飾とカーソル位置の補正
-- `docs/plans/001-plugin-scaffold.md`: 雛形作成の計画
-
-## 開発・検証
-
-```sh
-npm install
-npm test
-```
-
-自動テストで通常の左右・行頭末尾移動、Vim の `h`・`l`・`0`・`$` と挿入モード、`3l`・`2h` の回数指定、選択位置の補正、複数カーソル、編集後の更新、有効化・無効化を確認します。実機で強調記号の非表示とノート切り替え後の維持を確認済みです。DOM のテストは模擬環境を使用しているため、画面の描画に依存する上下移動は別途確認が必要です。
+MIT
