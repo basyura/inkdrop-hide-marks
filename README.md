@@ -12,11 +12,14 @@ Works with both the standard editor and Vim.
 
 ## Supported syntax
 
-* [x] `**strong**`
-* [x] `[Inkdrop](https://www.inkdrop.app)` → [link-compact](https://my.inkdrop.app/plugins/link-compact)
-* [ ] `~~delete~~`
-* [ ] `inline code`
-* [ ] `> blockquote`
+* `**strong**`
+* `[Inkdrop](https://www.inkdrop.app)` → [link-compact](https://my.inkdrop.app/plugins/link-compact)
+
+## Planned syntax support
+
+* `~~delete~~`
+* `inline code`
+* `> blockquote`
 
 ## Requirements
 
