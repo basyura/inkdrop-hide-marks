@@ -9,7 +9,7 @@ global.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window)
 global.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 dom.window.Range.prototype.getClientRects = () => [];
 dom.window.Range.prototype.getBoundingClientRect = () => ({left:0,right:0,top:0,bottom:0,width:0,height:0});
-const { EditorState } = require('@codemirror/state');
+const { EditorState, Prec } = require('@codemirror/state');
 const { EditorView, keymap } = require('@codemirror/view');
 const { defaultKeymap, cursorCharLeft, cursorCharRight, cursorLineStart, cursorLineEnd } = require('@codemirror/commands');
 const { vim, Vim, getCM } = require('@replit/codemirror-vim');
@@ -514,4 +514,47 @@ test('表示中の終了記号では右矢印と Vim a の通常の挿入位置�
       assert.equal(view.contentDOM.textContent.includes('**'),true);
     } finally {view.destroy();}
   }
+});
+
+
+for (const key of ['h', 'l']) {
+  test(`Vim ${key} は他プラグインのリンク移動補正を上書きしない`, () => {
+    const doc = 'x [ab](url) y **cd** z';
+    let view;
+    const from = key === 'l' ? 5 : 11;
+    const target = key === 'l' ? 6 : 10;
+    const expected = key === 'l' ? 11 : 5;
+    const other = Prec.low(EditorState.transactionFilter.of(tr =>
+      tr.selection?.main.head === target
+        ? [tr, { selection: { anchor: expected } }] : tr));
+    view = new EditorView({parent: document.body, state: EditorState.create({
+      doc, selection: {anchor: from},
+      extensions: [vim(), other, createExtension(() => !view.cm.state.vim.insertMode)],
+    })});
+    try {
+      Vim.handleKey(view.cm, '<Esc>');
+      press(view, key);
+      assert.equal(view.state.selection.main.head, expected);
+      assert.equal(view.state.doc.toString(), doc);
+    } finally { view.destroy(); }
+  });
+}
+
+test('強調を含む回数指定でも他プラグインが補正した移動先を維持する', () => {
+  const doc = '**ab** [cd](url) z';
+  let view;
+  let correcting = false;
+  const other = Prec.low(EditorState.transactionFilter.of(tr =>
+    correcting && tr.selection ? [tr, {selection: {anchor: 16}}] : tr));
+  view = new EditorView({parent: document.body, state: EditorState.create({
+    doc, selection: {anchor: 2},
+    extensions: [vim(), other, createExtension(() => !view.cm.state.vim.insertMode)],
+  })});
+  try {
+    Vim.handleKey(view.cm, '<Esc>');
+    correcting = true;
+    press(view, '8'); press(view, 'l');
+    assert.equal(view.state.selection.main.head, 16);
+    assert.equal(view.state.doc.toString(), doc);
+  } finally { view.destroy(); }
 });
